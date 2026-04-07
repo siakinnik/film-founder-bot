@@ -32,7 +32,7 @@ const findCount = require("./store/findCount");
 
 // Init
 const ai = new GoogleGenAI({ apiKey: `${apiKey}` });
-console.log(ai)
+// console.log(ai)
 
 // Constants & helper functions
 const { menuButton } = require("./utils/menuButton");
@@ -45,6 +45,7 @@ const { memoryCleaner } = require("./utils/memoryCleaner");
 setInterval(memoryCleaner, 60000);
 
 // Handlers
+
 bot.on('message', async (ctx) => {
     if (!ctx.message || !ctx.message.text) return;
     if (ctx.message.text.startsWith('/lang')) return Lang(ctx);
@@ -63,7 +64,7 @@ bot.on('message', async (ctx) => {
             userLang = rows[0].lang || 'en';
         }
 
-        const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+        const lang      = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
 
         if (memory.find(m => m.chatId === ctx.message.chat.id)) return ctx.reply(lang.session.sessionExists, {
             parse_mode: 'Markdown', reply_markup: {
@@ -113,63 +114,78 @@ bot.action('lang', async (ctx) => {
 });
 
 bot.action('RU', async (ctx) => {
+    let conn
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
-        const conn = await createConn();
+        conn = await createConn();
         await conn.query(`UPDATE users SET lang = ? WHERE id = ?`, ['ru', chatId]);
         await menu(ru, chatId, ctx.callbackQuery.message);
-        await conn.close();
     } catch (err) {
         logger.log(`index.js (RU action/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
             level: 'error',
             error: err
         });
-    }
+    } finally {
+        if (conn) {
+            conn.close();
+        }
+        await ctx.answerCbQuery();
+    };
 });
 
 bot.action('DE', async (ctx) => {
+    let conn;
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
-        const conn = await createConn();
+        conn = await createConn();
         await conn.query(`UPDATE users SET lang = ? WHERE id = ?`, ['de', chatId]);
         await menu(de, chatId, ctx.callbackQuery.message);
-        await conn.close();
     } catch (err) {
         logger.log(`index.js (DE action/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
             level: 'error',
             error: err
         });
-    }
+    } finally {
+        if (conn) {
+            conn.close();
+        }
+        await ctx.answerCbQuery();
+    };
 });
 
 bot.action('EN', async (ctx) => {
+    let conn;
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
-        const conn = await createConn();
+        conn = await createConn();
         await conn.query(`UPDATE users SET lang = ? WHERE id = ?`, ['en', chatId]);
         await menu(en, chatId, ctx.callbackQuery.message);
-        await conn.close();
     } catch (err) {
         logger.log(`index.js (EN action/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
             level: 'error',
             error: err
         });
-    }
+    } finally {
+        if (conn) {
+            conn.close();
+        }
+        await ctx.answerCbQuery();
+    };
 });
 
 bot.action('session_start', async (ctx) => {
     let conn;
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
-        
-        if (memory.find(m => m.chatId === chatId)) {
-            return ctx.answerCbQuery(lang.session.sessionExists, { show_alert: true });
-        }
 
         conn = await createConn();
         const [rows] = await conn.query(`SELECT * FROM users WHERE id = ?`, [chatId]);
         const userLang = rows[0]?.lang || 'en';
         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+
+        if (memory.find(m => m.chatId === chatId)) {
+            return ctx.answerCbQuery(lang.session.sessionExists, { show_alert: true });
+        }
 
         const lastUpdate = new Date(rows[0].find_count_set);
         const isToday = lastUpdate.toDateString() === new Date().toDateString();
@@ -192,41 +208,45 @@ bot.action('session_start', async (ctx) => {
             }
         });
 
-        await ctx.answerCbQuery();
-
     } catch (err) {
         logger.log(`index.js (session_start) | Error: ${err.message}`, { level: 'error' });
     } finally {
         if (conn) await conn.close();
-    }
+        await ctx.answerCbQuery();
+    };
 });
 
-// bot.action('session_stop', async (ctx) => {
-//     try {
-//         const chatId = ctx.callbackQuery.message.chat.id;
-//         const memIndex = memory.findIndex(m => m.chatId === chatId);
-//         const connection = await createConn();
-//         const [rows] = await connection.query(`SELECT find_count FROM users WHERE id = ?`, [chatId]);
-//         const userLang = rows.length > 0 ? rows[0].lang : 'en';
-//         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
-//         await connection.query(`UPDATE users SET find_count = find_count + 1, find_count_set = CURRENT_TIMESTAMP WHERE id = ?`, [chatId]);
-//         await connection.close();
-//         findCount.push({ chatId, film: memory[memIndex]?.memory[0] || 'unknown', findStatus: memory[memIndex]    ? 'success' : 'unknown' });
-//         if (memIndex !== -1) {
-//             memory.splice(memIndex, 1);
-//             ctx.reply(lang.session.sessionStoped, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [menuButton(lang)] } });
-//         } else {
-//             ctx.reply(lang.session.noActiveSession, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [menuButton(lang)] } });
-//         }
-//     } catch (err) {
-// logger.log(`index.js (settion_stop/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
-//     level: 'error',
-//     error: err
-// });
-//     }
-// });
-// Pre-init: create table && database if not exists
+bot.action('session_stop', async (ctx) => {
+    let connection;
+    try {
+        const chatId = ctx.callbackQuery.message.chat.id;
+        connection = await createConn();
+        const [rows] = await connection.query(`SELECT find_count FROM users WHERE id = ?`, [chatId]);
+        const userLang = rows.length > 0 ? rows[0].lang : 'en';
+        const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
 
+        const memIndex = memory.findIndex(m => m.chatId === chatId);
+
+        await connection.query(`UPDATE users SET find_count = find_count + 1, find_count_set = CURRENT_TIMESTAMP WHERE id = ?`, [chatId]);
+        findCount.push({ chatId, film: memory[memIndex]?.memory[0] || 'unknown', findStatus: memory[memIndex] ? 'success' : 'unknown' });
+        if (memIndex !== -1) {
+            memory.splice(memIndex, 1);
+            ctx.reply(lang.session.sessionStoped, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [menuButton(lang)] } });
+        } else {
+            ctx.reply(lang.session.noActiveSession, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [menuButton(lang)] } });
+        }
+    } catch (err) {
+        logger.log(`index.js (settion_stop/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
+            level: 'error',
+            error: err
+        });
+    } finally {
+        if (connection) {
+            await connection.close();
+        };
+        await ctx.answerCbQuery()
+    }
+});
 
 // Start bot
 (async () => {

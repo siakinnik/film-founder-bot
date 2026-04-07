@@ -19,7 +19,7 @@
 // Node.js built-in
 const fs = require('fs');
 const path = require('path');
-const { errChannel } = require('../config');
+const { logChannel } = require('../config');
 const bot = require('./bot');
 
 // External packages
@@ -258,7 +258,7 @@ class Logger {
         // Telegram output if enabled
         if (this.telegram.enabled) {
             const formatted = this.formatMessage(message, logParams, 'telegram');
-            await bot.sendMessage(errChannel, formatted);
+            await bot.sendMessage(logChannel, formatted);
         }
         // Writing to file
         const formatted = this.formatMessage(message, logParams, 'file');
