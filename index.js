@@ -504,7 +504,7 @@ bot.action('donation', async (ctx) => {
             parse_mode: 'Markdown',
             disable_web_page_preview: true,
             reply_markup: {
-                inline_keyboard: [[{ text: "⭐ GitHub", url: "https://github.com/siakinnik/film-founder-bot" }]]
+                inline_keyboard: [[{ text: "⭐ GitHub", url: "https://github.com/siakinnik/film-founder-bot" }], menuButton(lang)]
             }
         });
         await ctx.answerCbQuery();
