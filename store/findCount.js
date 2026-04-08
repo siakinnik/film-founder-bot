@@ -2,10 +2,17 @@
 // findCount.js - findCount array
 // --------------------------------------
 
-// Found films, count of them, for statistics
-// Stored 24 hours in memory, then sent to owner and cleared
-// Format: { chatId, film, findStatus }
-// findStatus: 'success', 'not_found', 'unknown'
+/**
+ * Found films and session results for analytics
+ * Format: { 
+ * chatId, 
+ * film,            // Movie title from session.detectedMovie
+ * findStatus,      // 'success' (user found it), 'canceled' (manual stop), 'unknown' (timeout)
+ * timestamp        // Date of session closure
+ * }
+ * Cleared every 24 hours after report is sent to owner.
+ */
+
 const findCount = [];
 
 module.exports = findCount;

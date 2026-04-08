@@ -14,7 +14,7 @@ const Lang = async (ctx) => {
                     { text: '🇩🇪DE', callback_data: 'DE' },
                     { text: '🇬🇧EN', callback_data: 'EN' },
                 ],
-                menuButton(en)
+                // menuButton(en)
             ]
         }
     });

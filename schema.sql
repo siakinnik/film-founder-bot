@@ -1,10 +1,7 @@
--- Table users
 CREATE TABLE IF NOT EXISTS users (
-    id BIGINT PRIMARY KEY,
-    lang VARCHAR(10) DEFAULT 'en',
-    find_count INTEGER DEFAULT 0,
-    find_count_set TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_banned BOOLEAN DEFAULT FALSE
+    id INTEGER PRIMARY KEY,           -- Telegram Chat ID
+    lang TEXT DEFAULT NULL,           -- Язык пользователя
+    find_count INTEGER DEFAULT 0,     -- Счетчик сессий
+    find_count_set TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Дата обновления счетчика
+    isBanned INTEGER DEFAULT 0        -- 0 = ок, 1 = забанен
 );
-
-CREATE INDEX IF NOT EXISTS idx_user_id ON users(id);

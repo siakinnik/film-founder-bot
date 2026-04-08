@@ -2,15 +2,17 @@
 // memory.js - memory array
 // --------------------------------------
 
-// Ai memory
-// Format: { chatId, memory, lastMessage}
-// If last message is older than 10 minutes, 
-// memory will be cleared and session be added to finalCount.
-// Max session tries is 3, then user will be asked if film was found or not,
-// if user do not answer in 10 minutes, session will be added to finalCount with 'unknown' status.
-// After every sesson, the count of sessions will be added to DB
-// Normally, the count of sessions for users should not be more than 2 per day,
-// to avoid abuse and make an api usage lower.
+/**
+ * Ai memory array
+ * Format: { 
+ * chatId,          // Unique Telegram Chat ID
+ * memory: [],      // Array of {user, bot} messages for Gemini context
+ * lastMessage,     // Timestamp of last activity (for cleaner)
+ * tries,           // Current attempt count (Max: MAX_TRIES_PER_SESSION)
+ * waitingForText,  // Boolean: true if bot expects user input, false if waiting for button click
+ * detectedMovie    // Last parsed movie title from AI response for statistics
+ * }
+ */
 const memory = [];
 
 module.exports = memory;

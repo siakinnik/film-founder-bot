@@ -1,21 +1,18 @@
-// -------------------------------
-// index.js - main file in Filmfounder Telegram bot by siakinnik
-// -------------------------------
+// -----------------------------------------------------------------------
+// index.js - Main entry point for Filmfounder Bot
+// Logic: Language-aware search, AI movie identification, and Session limits
+// -----------------------------------------------------------------------
 
 // Dependencies
-const { GoogleGenAI } = require('@google/genai'); // Gemeni API library
+const { GoogleGenAI, Language } = require('@google/genai'); // Gemeni API library
 const createConn = require('./db'); // MySQL-like sqlite wrapper
 const bot = require("./utils/bot"); // Telegram bot(Telegraf bot with some node-telegram-bot-api functions)
 const logger = require("./utils/Logger");
 
 // Config
 const {
-    token,
     owner,
-    logChannel,
-    dbPath,
     apiKey,
-    MAX_MEMORY_AGE,
     MAX_SESSIONS_PER_DAY,
     MAX_TRIES_PER_SESSION,
     model,
@@ -41,64 +38,237 @@ const { menu } = require("./utils/menu");
 const { preInit } = require("./utils/preInit");
 const { getLineNumber } = require("./utils/getLineNumber");
 const { memoryCleaner } = require("./utils/memoryCleaner");
+const { escapeMarkdown } = require("./utils/escapeMarkdown");
 
 setInterval(memoryCleaner, 60000);
-
+setInterval(async () => {
+    if (findCount.length === 0) return;
+    const success = findCount.filter(f => f.findStatus === 'success').length;
+    const report = `📢 *Daily report*\n\nTotal requests: ${findCount.length}\nSuccess: ${success}`;
+    try {
+        await bot.telegram.sendMessage(owner, report, { parse_mode: 'Markdown' });
+        findCount.length = 0;
+        logger.log("index.js | Daily stats cleared and sent to owner.");
+    } catch (err) {
+        logger.log(`index.js | Failed to send daily report: ${err.message}`, { level: 'error' });
+    }
+}, 24 * 60 * 60 * 1000);
 // Handlers
 
 bot.on('message', async (ctx) => {
     if (!ctx.message || !ctx.message.text) return;
     if (ctx.message.text.startsWith('/lang')) return Lang(ctx);
 
-    let conn
-    try {
-        const chatId = ctx.message.chat.id;
-        conn = await createConn();
-        let userLang;
-        const [rows] = await conn.query(`SELECT * FROM users WHERE id = ?`, [chatId]);
+    const text = ctx.message.text;
+    const chatId = ctx.message.chat.id;
+    const isOwner = chatId === owner;
 
-        if (rows.length === 0) {
-            userLang = ctx.message.from.language_code || 'en';
-            await conn.query(`INSERT INTO users (id, lang) VALUES (?, ?)`, [chatId, ctx.message.from.language_code || 'en']);
-        } else {
-            userLang = rows[0].lang || 'en';
-        }
+    if (!(isOwner && (text === '/stats' || text.startsWith('/ban') || text.startsWith('/unban')))) {
+        let conn
+        try {
+            conn = await createConn();
+            let userLang;
+            const [rows] = await conn.query(`SELECT * FROM users WHERE id = ?`, [chatId]);
 
-        const lang      = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
-
-        if (memory.find(m => m.chatId === ctx.message.chat.id)) return ctx.reply(lang.session.sessionExists, {
-            parse_mode: 'Markdown', reply_markup: {
-                inline_keyboard: [[
-                    { text: `${lang.session.buttons.sessionStop}`, callback_data: 'session_stop' }
-                ]]
+            if (rows.length > 0 && rows[0].isBanned === 1) {
+                return ctx.reply("🚫 *You are banned.*", { parse_mode: 'Markdown' });
             }
-        });
 
-        await menu(lang, chatId, ctx.message);
-    } catch (err) {
-        ctx.reply('An error occurred while processing your message. Please try again later.');
-        logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Unknown Error ${err.message}`, {
-            level: 'error',
-            error: err
-        });
-    } finally {
-        if (conn) {
-            conn.close();
+            if (rows.length === 0) {
+                await conn.query(`INSERT INTO users (id, lang, isBanned) VALUES (?, NULL, 0)`, [chatId]);
+                return Lang(ctx);
+            };
+
+            if (!rows[0].lang) {
+                return Lang(ctx);
+            }
+            userLang = rows[0].lang || 'en';
+
+            const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+            const session = memory.find(m => m.chatId === chatId);
+
+            if (session) {
+                if (session.waitingForText === false) {
+                    return ctx.reply(lang.session.sessionExists, {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: lang.session.buttons.continue, callback_data: 'session_continue' }],
+                                [{ text: lang.session.buttons.stop, callback_data: 'session_stop' }]
+                            ]
+                        }
+                    });
+                }
+                session.lastMessage = Date.now();
+                session.tries++;
+
+                if (session.tries > MAX_TRIES_PER_SESSION) {
+                    return ctx.reply(lang.session.limitReached, {
+                        reply_markup: { inline_keyboard: [[{ text: lang.session.buttons.stop, callback_data: 'session_stop' }]] }
+                    });
+                }
+
+                await ctx.sendChatAction('typing');
+
+                let result;
+                try {
+                    result = await ai.models.generateContent({
+                        model: model,
+                        config: {
+                            systemInstruction: aiInstruction
+                        },
+                        contents: [
+                            ...session.memory.flatMap(m => [
+                                { role: "user", parts: [{ text: m.user }] },
+                                { role: "model", parts: [{ text: m.bot }] }
+                            ]),
+                            { role: "user", parts: [{ text: text }] }
+                        ]
+                    });
+                } catch (err) {
+                    if (err.message && err.message.includes('429')) {
+                        logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Daily quota exceeded: ${err.message}`, {
+                            level: 'error',
+                            error: err
+                        });
+                        return ctx.reply(lang.errors.quota_exceeded, { parse_mode: 'Markdown' });
+                    };
+                    if (err.message && (err.message.includes('503') || err.message.includes('overloaded'))) {
+                        logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Model overloaded: ${err.message}`, {
+                            level: 'error',
+                            error: err
+                        });
+                        return ctx.reply(lang.errors.overloaded, { parse_mode: 'Markdown' });
+                    };
+                    ctx.reply('An error occurred while processing your message. Please try again later.');
+                    logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Unknown Error ${err.message}`, {
+                        level: 'error',
+                        error: err
+                    });
+                }
+
+                const response = result.candidates[0]?.content?.parts[0]?.text || "";
+
+                const rawAiResponse = escapeMarkdown(response);
+
+                const titleMatch = rawAiResponse.match(/Title:\s*(.*?)\s*\|/i);
+                const confidenceMatch = rawAiResponse.match(/Confidence:\s*(\d+)%/i);
+                const descriptionMatch = rawAiResponse.match(/Description:\s*([\s\S]*)/i);
+
+                const movieTitle = titleMatch ? titleMatch[1] : "Unknown";
+                const confidence = confidenceMatch ? confidenceMatch[1] : "0";
+                const finalText = descriptionMatch ? descriptionMatch[1] : rawAiResponse;
+
+                if (!session.detectedMovie || session.detectedMovie === "Unknown") {
+                    session.detectedMovie = movieTitle;
+                }
+
+                session.memory.push({ user: text, bot: rawAiResponse });
+                session.waitingForText = false;
+
+                return await ctx.reply(`*${movieTitle}\n\n${finalText}*\n\n*${lang.session.confidence}: ${confidence}%*`, {
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: lang.session.buttons.found, callback_data: 'session_stop_success' }],
+                            [{ text: lang.session.buttons.continue, callback_data: 'session_continue' }],
+                            [{ text: lang.session.buttons.stop, callback_data: 'session_stop' }]
+                        ]
+                    }
+                });
+            }
+
+            await menu(lang, chatId, ctx.message);
+        } catch (err) {
+            ctx.reply('An error occurred while processing your message. Please try again later.');
+            logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Unknown Error ${err.message}`, {
+                level: 'error',
+                error: err
+            });
+        } finally {
+            if (conn) {
+                conn.close();
+            };
+        };
+    } else {
+        if (text === '/stats') {
+            if (findCount.length === 0) {
+                return ctx.reply("📊 *Stats empty*", { parse_mode: 'Markdown' });
+            }
+            const total = findCount.length;
+            const success = findCount.filter(f => f.findStatus === 'success').length;
+            const canceled = findCount.filter(f => f.findStatus === 'canceled').length;
+            const unknown = findCount.filter(f => f.findStatus === 'unknown').length;
+
+            let report = `📊 *24 hours stats:*\n\n`;
+            report += `Total sessions: ${total}\n`;
+            report += `✅ Success: ${success}\n`;
+            report += `❌ Canceled: ${canceled}\n`;
+            report += `⏳ Timeout: ${unknown}\n\n`;
+
+            report += `🎬 *Last films:* \n`;
+            findCount.slice(-5).forEach(f => {
+                report += `- ${escapeMarkdown(f.film)} (${f.findStatus})\n`;
+            });
+
+            await ctx.reply(report, { parse_mode: 'Markdown' });
+        } else if (text.startsWith('/ban')) {
+            const parts = text.split(' ');
+            if (parts.length < 2) return ctx.reply("Usage: /ban <chatId>");
+
+            const targetId = parts[1];
+            let conn;
+            try {
+                conn = await createConn();
+                await conn.query(`UPDATE users SET isBanned = ? WHERE id = ?`, [1, targetId]);
+                return ctx.reply(`User ${targetId} banned.`);
+            } catch (e) {
+                return ctx.reply("Error updating user status.");
+            } finally {
+                if (conn) conn.close();
+            };
+        } else if (text.startsWith('/unban')) {
+            const parts = text.split(' ');
+            if (parts.length < 2) return ctx.reply("Usage: /unban <chatId>");
+
+            const targetId = parts[1];
+            let conn;
+            try {
+                conn = await createConn();
+                await conn.query(`UPDATE users SET isBanned = ? WHERE id = ?`, [0, targetId]);
+                return ctx.reply(`User ${targetId} unbanned.`);
+            } catch (e) {
+                return ctx.reply("Error updating user status.");
+            } finally {
+                if (conn) conn.close();
+            };
         };
     };
 });
 
 bot.action('menu', async (ctx) => {
+    let conn;
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
-        const userLang = ctx.callbackQuery.from.language_code || 'en';
+        conn = await createConn();
+        const [rows] = await conn.query(`SELECT lang FROM users WHERE id = ?`, [chatId]);
+        const userLang = (rows.length > 0 && rows[0].lang) ? rows[0].lang : '';
+        if (!userLang) {
+            return Lang(ctx)
+        };
         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
         await menu(lang, chatId, ctx.callbackQuery.message);
+        await ctx.answerCbQuery();         
     } catch (err) {
-        logger.log(`index.js (menu action/line ${getLineNumber()}) | Unknown Error ${err.message}`, {
+        logger.log(`index.js (menu action/line ${getLineNumber()}) | DB/Menu Error: ${err.message}`, {
             level: 'error',
             error: err
         });
+        await ctx.answerCbQuery('Error loading menu'); 
+    } finally {
+        if (conn) {
+            await conn.close();
+        }
     }
 });
 
@@ -180,6 +350,20 @@ bot.action('session_start', async (ctx) => {
 
         conn = await createConn();
         const [rows] = await conn.query(`SELECT * FROM users WHERE id = ?`, [chatId]);
+
+        if (rows.length > 0 && rows[0].isBanned === 1) {
+            return ctx.reply("🚫 *You are banned.*", { parse_mode: 'Markdown' });
+        }
+
+        if (rows.length === 0) {
+            await conn.query(`INSERT INTO users (id, lang, isBanned) VALUES (?, NULL, 0)`, [chatId]);
+            return Lang(ctx);
+        };
+
+        if (!rows[0].lang) {
+            return Lang(ctx);
+        }
+
         const userLang = rows[0]?.lang || 'en';
         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
 
@@ -198,13 +382,15 @@ bot.action('session_start', async (ctx) => {
             chatId: chatId,
             memory: [],
             lastMessage: Date.now(),
-            tries: 0
+            tries: 0,
+            waitingForText: true,
+            detectedMovie: null
         });
 
         await ctx.editMessageText(lang.session.startPrompt, {
             parse_mode: 'Markdown',
             reply_markup: {
-                inline_keyboard: [[{ text: lang.session.buttons.sessionStop, callback_data: 'session_stop' }]]
+                inline_keyboard: [[{ text: lang.session.buttons.stop, callback_data: 'session_stop' }]]
             }
         });
 
@@ -221,15 +407,22 @@ bot.action('session_stop', async (ctx) => {
     try {
         const chatId = ctx.callbackQuery.message.chat.id;
         connection = await createConn();
-        const [rows] = await connection.query(`SELECT find_count FROM users WHERE id = ?`, [chatId]);
+        const [rows] = await connection.query(`SELECT find_count, lang FROM users WHERE id = ?`, [chatId]);
+
         const userLang = rows.length > 0 ? rows[0].lang : 'en';
         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
 
         const memIndex = memory.findIndex(m => m.chatId === chatId);
 
-        await connection.query(`UPDATE users SET find_count = find_count + 1, find_count_set = CURRENT_TIMESTAMP WHERE id = ?`, [chatId]);
-        findCount.push({ chatId, film: memory[memIndex]?.memory[0] || 'unknown', findStatus: memory[memIndex] ? 'success' : 'unknown' });
         if (memIndex !== -1) {
+            await connection.query(`UPDATE users SET find_count = find_count + 1, find_count_set = CURRENT_TIMESTAMP WHERE id = ?`, [chatId]);
+            const session = memory[memIndex];
+            findCount.push({
+                chatId,
+                film: session.detectedMovie || 'not_found',
+                findStatus: 'canceled',
+                timestamp: new Date()
+            });
             memory.splice(memIndex, 1);
             ctx.reply(lang.session.sessionStoped, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [menuButton(lang)] } });
         } else {
@@ -246,6 +439,68 @@ bot.action('session_stop', async (ctx) => {
         };
         await ctx.answerCbQuery()
     }
+});
+bot.action('session_continue', async (ctx) => {
+    const chatId = ctx.callbackQuery.message.chat.id;
+    const session = memory.find(m => m.chatId === chatId);
+    if (session) {
+        session.waitingForText = true;
+        await ctx.editMessageReplyMarkup();
+        const userLang = ctx.callbackQuery.from.language_code || 'en';
+        const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+        await ctx.reply(lang.session.continuePrompt, { parse_mode: "Markdown" });
+    }
+    await ctx.answerCbQuery();
+});
+
+bot.action('session_stop_success', async (ctx) => {
+    let connection;
+    try {
+        const chatId = ctx.callbackQuery.message.chat.id;
+        const memIndex = memory.findIndex(m => m.chatId === chatId);
+
+        if (memIndex === -1) return ctx.answerCbQuery();
+
+        const session = memory[memIndex];
+        connection = await createConn();
+
+        const [rows] = await connection.query(`SELECT lang FROM users WHERE id = ?`, [chatId]);
+
+        const lang = rows[0]?.lang?.startsWith('ru') ? ru : rows[0]?.lang?.startsWith('de') ? de : en;
+
+        findCount.push({
+            chatId,
+            film: session.detectedMovie || 'unknown',
+            findStatus: 'success',
+            timestamp: new Date()
+        });
+
+        await connection.query(`UPDATE users SET find_count = find_count + 1, find_count_set = CURRENT_TIMESTAMP WHERE id = ?`, [chatId]);
+        memory.splice(memIndex, 1);
+        await ctx.reply(`🎉 ${lang.session.sessionStoped}`, {
+            parse_mode: "Markdown",
+            reply_markup: { inline_keyboard: [menuButton(lang)] }
+        });
+    } catch (err) {
+        logger.log(`index.js (stop_success) | ${err.message}`, { level: 'error' });
+    } finally {
+        if (connection) await connection.close();
+        await ctx.answerCbQuery();
+    }
+});
+
+bot.action('donation', async (ctx) => {
+    const userLang = ctx.from.language_code || 'en';
+    const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+
+    await ctx.answerCbQuery();
+    await ctx.reply(lang.menu.donate_text, {
+        parse_mode: 'Markdown',
+        disable_web_page_preview: true,
+        reply_markup: {
+            inline_keyboard: [[{ text: "⭐ GitHub", url: "https://github.com/siakinnik/film-founder-bot" }]]
+        }
+    });
 });
 
 // Start bot

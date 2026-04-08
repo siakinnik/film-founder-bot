@@ -1,23 +1,32 @@
 {
     "menu": {
-        "welcome": "*👋Приветствую, {{firstName}}!*\n\nЯ - FilmFounder, бот для поиска фильмов.\nПросто нажми на кнопку ниже, и я помогу тебе вспомнить название фильма по твоему описанию.",
+        "welcome": "*👋 Hallo, {{firstName}}!*\n\nIch bin FilmFounder, dein KI-Assistent für die Filmsuche.\nKlicke auf die Schaltfläche unten, und ich helfe dir, den Namen des Films anhand deiner Beschreibung zu finden.",
         "buttons": {
-            "text": "🏠 Меню",
-            "search": "🔍 Найти фильм",
-            "donate": "💳 Поддержать проект",
-            "language": "🌍 Язык"
-        }
+            "text": "🏠 Menü",
+            "search": "🔍 Film suchen",
+            "donate": "💳 Projekt unterstützen",
+            "language": "🌍 Sprache"
+        },
+        "donate_text": "Dieses Projekt ist ein Herzensprojekt und dient dem Lernen. 🎓\n\nIch nehme keine Geldspenden an, um mir den Kampf mit der deutschen Bürokratie und der Steuererklärung für jeden Euro zu ersparen. 🇩🇪📜\n\nDie beste Unterstützung ist dein Stern auf **GitHub**! Das motiviert mich, das Projekt weiterzuentwickeln. Vielen Dank! ❤️\n\nhttps://github.com/siakinnik/film-founder-bot"
     },
     "session": {
-        "startPrompt": "📝 *Я тебя слушаю!*\n\nОпиши всё, что помнишь о фильме (сюжет, актеры, сцены). Я постараюсь его найти.\n\n_У тебя есть 3 попытки в рамках одной сессии._",
-        "sessionExists": "*У тебя уже есть активная сессия.*\nПожалуйста, заверши её или подожди 10 минут, прежде чем начинать новую.",
-        "sessionStoped": "✅ *Поиск завершен.*\nНадеюсь, я смог тебе помочь! Теперь ты можешь начать новую сессию.",
-        "sessionStopedByTimer": "⏱ *Сессия завершена из-за бездействия.*\nТы можешь начать новую в любое время.",
-        "noActiveSession": "❌ *У тебя нет активной сессии.*",
-        "limitDayReached": "🛑 *Лимит на сегодня исчерпан.*\nК сожалению, ты уже использовал свои 2 сессии на сегодня. Возвращайся завтра!",
-        "limitReached": "⚠️ *Попытки исчерпаны.*\nВ этой сессии я больше не могу отвечать. Пожалуйста, заверши её и начни новую, если не нашел то, что искал.",
+        "startPrompt": "📝 *Ich höre dir zu!*\n\nBeschreibe alles, woran du dich erinnerst (Handlung, Schauspieler, Szenen). Ich werde versuchen, den Film zu finden.\n\n_Du hast mehrere Versuche innerhalb einer Sitzung, um Details hinzuzufügen._",
+        "sessionExists": "*Du hast bereits eine aktive Sitzung.*\nBitte beende diese oder klicke auf „Weiter“, um mehr Details hinzuzufügen.",
+        "sessionStoped": "✅ *Suche beendet.*\nIch hoffe, ich konnte dir helfen! Du kannst jetzt eine neue Sitzung starten.",
+        "sessionStopedByTimer": "⏱ *Sitzung wegen Inaktivität beendet.*\nDu kannst jederzeit eine neue Sitzung starten.",
+        "continuePrompt": "✅ *Erzähl mir mehr Details!*",
+        "noActiveSession": "❌ *Du hast keine aktive Sitzung.*",
+        "limitDayReached": "🛑 *Tageslimit erreicht.*\nLeider hast du deine Sitzungen für heute bereits aufgebraucht. Komm morgen wieder!",
+        "limitReached": "⚠️ *Versuche aufgebraucht.*\nIn dieser Sitzung kann ich nicht mehr antworten. Bitte beende sie und starte eine neue, falls du den Film noch nicht gefunden hast.",
+        "confidence": "Konfidenz",
         "buttons": {
-            "sessionStop": "❌ Завершить поиск"
+            "found": "✅ Das ist er!",
+            "continue": "🔎 Nicht dieser, weitersuchen",
+            "stop": "❌ Suche abbrechen"
         }
+    },
+    "errors": {
+        "quota_exceeded": "🤯 *Oje! Das Gehirn des Bots ist rauchend.*\n\nDas tägliche Limit für kostenlose KI-Anfragen wurde erreicht (Free Tier). Bitte komm morgen wieder, wenn die Limits zurückgesetzt werden! 🌅",
+        "overloaded": "⏳ *Die KI ist derzeit überlastet.*\nDie Google-Server sind gerade überfordert. Bitte versuche es in einer Minute noch einmal."
     }
 }

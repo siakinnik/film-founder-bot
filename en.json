@@ -1,23 +1,32 @@
 {
     "menu": {
-        "welcome": "*👋 Welcome, {{firstName}}!*\n\nI am FilmFounder, a bot for finding movies.\nJust click the button below and I will help you find a movie by its description.",
+        "welcome": "*👋 Hi there, {{firstName}}!*\n\nI am FilmFounder, your AI-powered movie search assistant.\nJust click the button below, and I'll help you find that movie you've been thinking about.",
         "buttons": {
             "text": "🏠 Menu",
             "search": "🔍 Find a movie",
-            "donate": "💳 Support us",
+            "donate": "💳 Support project",
             "language": "🌍 Language"
-        }
+        },
+        "donate_text": "This project was created for learning and from the heart. 🎓\n\nI don't accept monetary donations to avoid fighting German bureaucracy and taxes over every single Euro. 🇩🇪📜\n\n© The best way to support me is by giving a star to this project on **GitHub**! It motivates me to keep developing. Thank you! ❤️\n\nhttps://github.com/siakinnik/film-founder-bot"
     },
     "session": {
-        "startPrompt": "📝 *I'm listening!*\n\nDescribe everything you remember about the movie. I'll do my best to find it.\n\n_You have 3 attempts per session._",
-        "sessionExists": "*You already have an active session.*\nPlease end it or wait 10 minutes before starting a new one.",
-        "sessionStoped": "✅ *Search completed.*\nI hope I was able to help! You can now start a new session.",
+        "startPrompt": "📝 *I'm listening!*\n\nDescribe everything you remember (plot, actors, specific scenes). I'll do my best to identify it.\n\n_You have several attempts within a session to provide more details._",
+        "sessionExists": "*You already have an active session.*\nPlease finish it or click \"Continue\" to add more details.",
+        "sessionStoped": "✅ *Search finished.*\nI hope I was able to help! You can start a new session now.",
         "sessionStopedByTimer": "⏱ *Session ended due to inactivity.*\nYou can start a new one anytime.",
-        "noActiveSession": "❌ *You have no active session.*",
-        "limitDayReached": "🛑 *Daily limit reached.*\nYou've used your 2 sessions for today. Come back tomorrow!",
-        "limitReached": "⚠️ *Attempts exhausted.*\nI can't answer anymore in this session. Please end it and start a new one.",
+        "continuePrompt": "✅ *Tell me more details!*",
+        "noActiveSession": "❌ *You don't have an active session.*",
+        "limitDayReached": "🛑 *Daily limit reached.*\nUnfortunately, you've used up your sessions for today. Come back tomorrow!",
+        "limitReached": "⚠️ *Attempts exhausted.*\nI can't respond further in this session. Please stop it and start a new one if you haven't found what you were looking for.",
+        "confidence": "Confidence",
         "buttons": {
-            "sessionStop": "❌ Stop searching"
+            "found": "✅ Found it!",
+            "continue": "🔎 Not it, keep looking",
+            "stop": "❌ Stop searching"
         }
+    },
+    "errors": {
+        "quota_exceeded": "🤯 *Oops! The bot's brain is fried.*\n\nThe daily free limit for AI requests has been reached (Free Tier). Please come back tomorrow when the limits reset! 🌅",
+        "overloaded": "⏳ *AI is currently overloaded.*\nGoogle's servers are struggling. Please try sending your message again in a minute."
     }
 }
