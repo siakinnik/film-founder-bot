@@ -258,18 +258,18 @@ bot.action('menu', async (ctx) => {
         };
         const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
         await menu(lang, chatId, ctx.callbackQuery.message);
-        await ctx.answerCbQuery();         
+        await ctx.answerCbQuery();
     } catch (err) {
         logger.log(`index.js (menu action/line ${getLineNumber()}) | DB/Menu Error: ${err.message}`, {
             level: 'error',
             error: err
         });
-        await ctx.answerCbQuery('Error loading menu'); 
+        await ctx.answerCbQuery('Error loading menu');
     } finally {
         if (conn) {
             await conn.close();
         }
-    }
+    };
 });
 
 bot.action('lang', async (ctx) => {
@@ -490,17 +490,35 @@ bot.action('session_stop_success', async (ctx) => {
 });
 
 bot.action('donation', async (ctx) => {
-    const userLang = ctx.from.language_code || 'en';
-    const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
-
-    await ctx.answerCbQuery();
-    await ctx.reply(lang.menu.donate_text, {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true,
-        reply_markup: {
-            inline_keyboard: [[{ text: "⭐ GitHub", url: "https://github.com/siakinnik/film-founder-bot" }]]
+    let conn;
+    try {
+        const chatId = ctx.callbackQuery.message.chat.id;
+        conn = await createConn();
+        const [rows] = await conn.query(`SELECT lang FROM users WHERE id = ?`, [chatId]);
+        const userLang = (rows.length > 0 && rows[0].lang) ? rows[0].lang : '';
+        if (!userLang) {
+            return Lang(ctx)
+        };
+        const lang = userLang.startsWith('ru') ? ru : userLang.startsWith('de') ? de : en;
+        await ctx.reply(lang.menu.donate_text, {
+            parse_mode: 'Markdown',
+            disable_web_page_preview: true,
+            reply_markup: {
+                inline_keyboard: [[{ text: "⭐ GitHub", url: "https://github.com/siakinnik/film-founder-bot" }]]
+            }
+        });
+        await ctx.answerCbQuery();
+    } catch (err) {
+        logger.log(`index.js (menu action/line ${getLineNumber()}) | DB/Menu Error: ${err.message}`, {
+            level: 'error',
+            error: err
+        });
+        await ctx.answerCbQuery('Error loading menu');
+    } finally {
+        if (conn) {
+            await conn.close();
         }
-    });
+    };
 });
 
 // Start bot
