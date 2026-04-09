@@ -65,7 +65,7 @@ bot.on('message', async (ctx) => {
     if (ctx.message.text.startsWith('/lang')) return Lang(ctx);
 
     const text = ctx.message.text;
-    const chatId = ctx.message.chat.id;
+    const chatId = ctx.message.from.id;
     const isOwner = chatId === owner;
 
     if (isOwner && isWaitingForSendallMessage) {
@@ -96,6 +96,7 @@ bot.on('message', async (ctx) => {
             }
 
             if (rows.length === 0) {
+                // console.log(`New user ${chatId}!`);
                 await conn.query(`INSERT INTO users (id, lang, isBanned) VALUES (?, NULL, 0)`, [chatId]);
                 return Lang(ctx);
             };
