@@ -13,7 +13,7 @@ const dbPath = process.env.DB_PATH; // Path to database
 const apiKey = process.env.API_KEY; // Gemeni api key
 
 const MAX_MEMORY_AGE = 10 * 60 * 1000; // 10 minutes
-const MAX_SESSIONS_PER_DAY = 2; // 2 sessions per day
+const MAX_SESSIONS_PER_DAY = 4; // 2 sessions per day
 const MAX_TRIES_PER_SESSION = 3; // 3 tries per session
 
 // AI settings 

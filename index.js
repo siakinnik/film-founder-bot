@@ -4,7 +4,7 @@
 // -----------------------------------------------------------------------
 
 // Dependencies
-const { GoogleGenAI, Language } = require('@google/genai'); // Gemeni API library
+const { GoogleGenAI } = require('@google/genai'); // Gemeni API library
 const createConn = require('./db'); // MySQL-like sqlite wrapper
 const bot = require("./utils/bot"); // Telegram bot(Telegraf bot with some node-telegram-bot-api functions)
 const logger = require("./utils/Logger");
@@ -53,6 +53,11 @@ setInterval(async () => {
         logger.log(`index.js | Failed to send daily report: ${err.message}`, { level: 'error' });
     }
 }, 24 * 60 * 60 * 1000);
+
+// Variables
+let isWaitingForSendallMessage = false;
+let sendAllPending = { users: [], copyMessageId: 0, messageText: "" };
+
 // Handlers
 
 bot.on('message', async (ctx) => {
@@ -63,7 +68,23 @@ bot.on('message', async (ctx) => {
     const chatId = ctx.message.chat.id;
     const isOwner = chatId === owner;
 
-    if (!(isOwner && (text === '/stats' || text.startsWith('/ban') || text.startsWith('/unban')))) {
+    if (isOwner && isWaitingForSendallMessage) {
+        isWaitingForSendallMessage = false;
+        const copyMessageId = ctx.message.message_id;
+        sendAllPending = { users: sendAllPending.users, copyMessageId, messageText: "" }
+        return ctx.reply(`⚠️ *Confirm Broadcast*`, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        { text: "✅ SEND", callback_data: "broadcast_yes" },
+                        { text: "❌ CANCEL", callback_data: "broadcast_no" }
+                    ]
+                ]
+            }
+        });
+    };
+    if (!(isOwner && (text === '/stats' || text.startsWith('/ban') || text.startsWith('/unban') || text.startsWith('/sendall')))) {
         let conn
         try {
             conn = await createConn();
@@ -223,6 +244,10 @@ bot.on('message', async (ctx) => {
                 await conn.query(`UPDATE users SET isBanned = ? WHERE id = ?`, [1, targetId]);
                 return ctx.reply(`User ${targetId} banned.`);
             } catch (e) {
+                logger.log(`index.js (line ${getLineNumber()}) | Error updating user status: ${e.message}`, {
+                    level: 'error',
+                    error: e
+                });
                 return ctx.reply("Error updating user status.");
             } finally {
                 if (conn) conn.close();
@@ -238,10 +263,68 @@ bot.on('message', async (ctx) => {
                 await conn.query(`UPDATE users SET isBanned = ? WHERE id = ?`, [0, targetId]);
                 return ctx.reply(`User ${targetId} unbanned.`);
             } catch (e) {
+                logger.log(`index.js (line ${getLineNumber()}) | Error updating user status: ${e.message}`, {
+                    level: 'error',
+                    error: e
+                });
                 return ctx.reply("Error updating user status.");
             } finally {
                 if (conn) conn.close();
             };
+        } else if (text.startsWith('/sendall')) {
+            const parts = text.split(' ');
+            // if (parts.length < 2) return ctx.reply("Usage: /unban <chatId>");
+
+            const targetId = parts[1];
+            let conn;
+            try {
+                conn = await createConn();
+                const [rows] = await conn.query(`SELECT id FROM users WHERE isBanned = ?`, [0]);
+                const users = [];
+                rows.forEach((user) => {
+                    if (!isNaN(+user.id)) users.push(+user.id);
+                });
+
+                if (parts.length >= 2) {
+                    const messageText = parts.slice(1).join(' ');
+
+                    sendAllPending = { users, copyMessageId: 0, messageText }
+                    ctx.reply(`⚠️ *Confirm Broadcast*:\n\n"${messageText}"`, {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    { text: "✅ SEND", callback_data: "broadcast_yes" },
+                                    { text: "❌ CANCEL", callback_data: "broadcast_no" }
+                                ]
+                            ]
+                        }
+                    });
+                } else {
+                    sendAllPending = { users, copyMessageId: 0, messageText: "" }
+                    ctx.reply("*Message to send all users*", {
+                        parse_mode: 'Markdown',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    { text: "❌ CANCEL", callback_data: "broadcast_no" }
+                                ]
+                            ]
+                        }
+                    })
+                    isWaitingForSendallMessage = true;
+                };
+            }
+            catch (err) {
+                logger.log(`index.js (line ${getLineNumber()}) | Error sending messages to users(part 1): ${err.message}`, {
+                    level: 'error',
+                    error: err
+                });
+                return ctx.reply("Error sending messages to users(part 1)");
+            }
+            finally {
+                if (conn) conn.close();
+            }
         };
     };
 });
@@ -518,6 +601,65 @@ bot.action('donation', async (ctx) => {
         if (conn) {
             await conn.close();
         }
+    };
+});
+
+bot.action('broadcast_yes', async (ctx) => {
+    const userId = ctx.from.id;
+    const isOwner = userId === owner;
+
+    if (!isOwner) return;
+
+    const { users, copyMessageId, messageText } = sendAllPending;
+    const isCopy = copyMessageId !== 0;
+    if (!isCopy && !messageText) return ctx.answerCbQuery("Nothing to send.");
+
+    try {
+        if (!isCopy) {
+            for (const user of users) {
+                await bot.sendMessage(user, messageText).catch((e) => {
+                    if (e.message.includes("bot was blocked by the user")) {
+                        logger.log(`index.js (line ${getLineNumber()}) | User ${user} blocked the bot. Skipping.`, { level: 'warn' });
+                    } else {
+                        logger.log(`index.js (line ${getLineNumber()}) | Error sending message to user: ${e.message}`, { level: 'error', error: e });
+                    };
+                });
+            };
+        } else {
+            for (const user of users) {
+                await bot.copyMessage(user, owner, copyMessageId).catch((e) => {
+                    if (e.message.includes("bot was blocked by the user")) {
+                        logger.log(`index.js (line ${getLineNumber()}) | User ${user} blocked the bot. Skipping.`, { level: 'warn' });
+                    } else {
+                        logger.log(`index.js (line ${getLineNumber()}) | Error copying message to user: ${e.message}`, { level: 'error', error: e });
+                    };
+                });
+            };
+        };
+    } catch (err) {
+        logger.log(`index.js (line ${getLineNumber()}) | Error sending message to users(part 2): ${err.message}`, { level: 'error', error: err });
+        return ctx.reply("Error sending messages to users(part 2)");
+    } finally {
+        ctx.editMessageText("✅*Sent!*", { parse_mode: "Markdown" })
+        ctx.answerCbQuery("✅Sent!");
+    };
+});
+
+bot.action('broadcast_no', async (ctx) => {
+    const userId = ctx.from.id;
+    const isOwner = userId === owner;
+
+    if (!isOwner) return;
+
+    try {
+        isWaitingForSendallMessage = false;
+        sendAllPending = { users: [], copyMessageId: 0, messageText: "" };
+    } catch (err) {
+        logger.log(`index.js (line ${getLineNumber()}) | Unknown error: ${err.message}`, { level: 'error', error: err });
+        return ctx.reply("❌Unknown error");
+    } finally {
+        ctx.editMessageText("❌*Cancelled!*", { parse_mode: "Markdown" })
+        ctx.answerCbQuery("❌Cancelled!");
     };
 });
 
