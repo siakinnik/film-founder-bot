@@ -15,6 +15,18 @@ FilmFounder is an AI-powered Telegram bot built on Google Gemini that helps you 
 - Auto-Cleanup: Automated memory management that clears inactive sessions to ensure 24/7 stability.
 - Daily Analytics: Automated daily reports sent to the owner (success rates, timeouts, and error stats).
 
+## Admin Panel & Control
+
+The bot includes an admin toolkit:
+
+- **Universal Broadcast System**:
+  - **Quick Text**: Send instant announcements to all users via `/sendall <text>`.
+  - **Forward Mode**: Send complex messages (images, videos with captions, or interactive posts) by simply forwarding them to the bot after a `/sendall` prompt.
+  - **Confirmation Step**: Integrated safety mechanism with `✅ SEND` and `❌ CANCEL` inline buttons to prevent accidental broadcasts.
+- **Audience Management**:
+  - **Ban System**: Instantly restrict access for specific users via `/ban <userId>` or unban via `/unban <userId>`.
+  - **Live Analytics**: View detailed 24-hour performance stats (active sessions, success rates, and last searched films) via `/stats`.
+
 ### Tech Stack
 
 - Runtime: Node.js
