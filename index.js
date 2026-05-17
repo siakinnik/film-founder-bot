@@ -4,7 +4,7 @@
 // -----------------------------------------------------------------------
 
 // Dependencies
-const { GoogleGenAI } = require('@google/genai'); // Gemeni API library
+const { AI } = require('./utils/AI');
 const createConn = require('./db'); // MySQL-like sqlite wrapper
 const bot = require("./utils/bot"); // Telegram bot(Telegraf bot with some node-telegram-bot-api functions)
 const logger = require("./utils/Logger");
@@ -13,6 +13,8 @@ const logger = require("./utils/Logger");
 const {
     owner,
     apiKey,
+    aiType,
+    baseURL,
     MAX_SESSIONS_PER_DAY,
     MAX_TRIES_PER_SESSION,
     model,
@@ -28,7 +30,12 @@ const memory = require("./store/memory");
 const findCount = require("./store/findCount");
 
 // Init
-const ai = new GoogleGenAI({ apiKey: `${apiKey}` });
+const ai = new AI({
+    type: aiType,
+    apiKey: apiKey,
+    model: model,
+    baseURL: baseURL
+});
 // console.log(ai)
 
 // Constants & helper functions
@@ -132,21 +139,18 @@ bot.on('message', async (ctx) => {
 
                 await ctx.sendChatAction('typing');
 
-                let result;
+                let response;
                 try {
-                    result = await ai.models.generateContent({
-                        model: model,
-                        config: {
-                            systemInstruction: aiInstruction
-                        },
-                        contents: [
-                            ...session.memory.flatMap(m => [
-                                { role: "user", parts: [{ text: m.user }] },
-                                { role: "model", parts: [{ text: m.bot }] }
-                            ]),
-                            { role: "user", parts: [{ text: text }] }
-                        ]
-                    });
+                    const historyText = session.memory
+                        .map(m => `User: ${m.user}\nAssistant: ${m.bot}`)
+                        .join('\n');
+
+                    const prompt = historyText
+                        ? `${historyText}\nUser: ${text}`
+                        : text;
+
+                    response = await ai.generate(prompt, aiInstruction);
+
                 } catch (err) {
                     if (err.message && err.message.includes('429')) {
                         logger.log(`index.js (bot.on('message.../line ${getLineNumber()}) | Daily quota exceeded: ${err.message}`, {
@@ -169,7 +173,7 @@ bot.on('message', async (ctx) => {
                     });
                 }
 
-                const response = result.candidates[0]?.content?.parts[0]?.text || "";
+                if (!response) response = "";
 
                 const rawAiResponse = escapeMarkdown(response);
 

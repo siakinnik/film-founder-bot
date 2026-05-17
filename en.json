@@ -1,13 +1,13 @@
 {
     "menu": {
-        "welcome": "*👋 Hi there, {{firstName}}!*\n\nI am FilmFounder, your AI-powered movie search assistant.\nJust click the button below, and I'll help you find that movie you've been thinking about.",
+        "welcome": "*👋 Hi there, {{firstName}}!*\n\nI am FilmFounder, your AI-powered movie search assistant.\nJust click the button below, and I'll help you find that movie you've been thinking about.\n\n⚖️ [Impressum / Legal Disclosure](https://example.com/impressum.md)",
         "buttons": {
             "text": "🏠 Menu",
             "search": "🔍 Find a movie",
             "donate": "💳 Support project",
             "language": "🌍 Language"
         },
-        "donate_text": "This project was created for learning and from the heart. 🎓\n\nI don't accept monetary donations to avoid fighting German bureaucracy and taxes over every single Euro. 🇩🇪📜\n\n© The best way to support me is by giving a star to this project on **GitHub**! It motivates me to keep developing. Thank you! ❤️\n\nhttps://github.com/siakinnik/film-founder-bot"
+        "donate_text": ""
     },
     "session": {
         "startPrompt": "📝 *I'm listening!*\n\nDescribe everything you remember (plot, actors, specific scenes). I'll do my best to identify it.\n\n_You have several attempts within a session to provide more details._",
@@ -27,6 +27,6 @@
     },
     "errors": {
         "quota_exceeded": "🤯 *Oops! The bot's brain is fried.*\n\nThe daily free limit for AI requests has been reached (Free Tier). Please come back tomorrow when the limits reset! 🌅",
-        "overloaded": "⏳ *AI is currently overloaded.*\nGoogle's servers are struggling. Please try sending your message again in a minute."
+        "overloaded": "⏳ *AI is currently overloaded.*\nServers are struggling. Please try sending your message again in a minute."
     }
 }

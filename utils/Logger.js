@@ -110,7 +110,7 @@ class Logger {
             pretty: options.format?.pretty ?? false
         };
         if (this.telegram.enabled) {
-            const { Telegraf } = require("telegraf");
+            // const { Telegraf } = require("telegraf");
             try {
                 // this.bot = new Telegraf(this.telegram.botToken);
                 this.constructorLogs = this.constructorLogs || [];
