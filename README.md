@@ -5,6 +5,8 @@
 
 FilmFounder is an AI-powered Telegram bot that helps you find movies based on even the vaguest descriptions. Now featuring a highly flexible architecture supporting multiple AI providers and proxy configurations.
 
+Running instanse: [@FilmFounderAI_bot](https://t.me/FilmFounderAI_bot)
+
 ## Key Features
 
 - **Flexible AI Engine**: Support for multiple AI providers including native **Google Gemini** and any **OpenAI-compatible API** (OpenRouter, DeepSeek, custom reverse proxies, etc.).
