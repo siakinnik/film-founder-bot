@@ -1,32 +1,32 @@
-{
-    "menu": {
-        "welcome": "*👋 Hallo, {{firstName}}!*\n\nIch bin FilmFounder, dein KI-Assistent für die Filmsuche.\nKlicke auf die Schaltfläche unten, und ich helfe dir, den Namen des Films anhand deiner Beschreibung zu finden.",
-        "buttons": {
-            "text": "🏠 Menü",
-            "search": "🔍 Film suchen",
-            "donate": "💳 Projekt unterstützen",
-            "language": "🌍 Sprache"
-        },
-        "donate_text": "Dieses Projekt ist ein Herzensprojekt und dient dem Lernen. 🎓\n\nIch nehme keine Geldspenden an, um mir den Kampf mit der deutschen Bürokratie und der Steuererklärung für jeden Euro zu ersparen. 🇩🇪📜\n\nDie beste Unterstützung ist dein Stern auf **GitHub**! Das motiviert mich, das Projekt weiterzuentwickeln. Vielen Dank! ❤️\n\nhttps://github.com/siakinnik/film-founder-bot"
-    },
-    "session": {
-        "startPrompt": "📝 *Ich höre dir zu!*\n\nBeschreibe alles, woran du dich erinnerst (Handlung, Schauspieler, Szenen). Ich werde versuchen, den Film zu finden.\n\n_Du hast mehrere Versuche innerhalb einer Sitzung, um Details hinzuzufügen._",
-        "sessionExists": "*Du hast bereits eine aktive Sitzung.*\nBitte beende diese oder klicke auf „Weiter“, um mehr Details hinzuzufügen.",
-        "sessionStoped": "✅ *Suche beendet.*\nIch hoffe, ich konnte dir helfen! Du kannst jetzt eine neue Sitzung starten.",
-        "sessionStopedByTimer": "⏱ *Sitzung wegen Inaktivität beendet.*\nDu kannst jederzeit eine neue Sitzung starten.",
-        "continuePrompt": "✅ *Erzähl mir mehr Details!*",
-        "noActiveSession": "❌ *Du hast keine aktive Sitzung.*",
-        "limitDayReached": "🛑 *Tageslimit erreicht.*\nLeider hast du deine Sitzungen für heute bereits aufgebraucht. Komm morgen wieder!",
-        "limitReached": "⚠️ *Versuche aufgebraucht.*\nIn dieser Sitzung kann ich nicht mehr antworten. Bitte beende sie und starte eine neue, falls du den Film noch nicht gefunden hast.",
-        "confidence": "Konfidenz",
-        "buttons": {
-            "found": "✅ Das ist er!",
-            "continue": "🔎 Nicht dieser, weitersuchen",
-            "stop": "❌ Suche abbrechen"
+        {
+            "menu": {
+                "welcome": "*👋 Hallo, {{firstName}}!*\n\nIch bin FilmFounder, dein KI-Assistent für die Filmsuche.\nKlicke auf die Schaltfläche unten, und ich helfe dir, den Namen des Films anhand deiner Beschreibung zu finden.\n\n⚖️ [Impressum / Legal Disclosure](https://example.com/impressum.md)",
+                "buttons": {
+                    "text": "🏠 Menü",
+                    "search": "🔍 Film suchen",
+                    "donate": "💳 Projekt unterstützen",
+                    "language": "🌍 Sprache"
+                },
+                "donate_text": ""
+            },
+            "session": {
+                "startPrompt": "📝 *Ich höre dir zu!*\n\nBeschreibe alles, woran du dich erinnerst (Handlung, Schauspieler, Szenen). Ich werde versuchen, den Film zu finden.\n\n_Du hast mehrere Versuche innerhalb einer Sitzung, um Details hinzuzufügen._",
+                "sessionExists": "*Du hast bereits eine aktive Sitzung.*\nBitte beende diese oder klicke auf „Weiter“, um mehr Details hinzuzufügen.",
+                "sessionStoped": "✅ *Suche beendet.*\nIch hoffe, ich konnte dir helfen! Du kannst jetzt eine neue Sitzung starten.",
+                "sessionStopedByTimer": "⏱ *Sitzung wegen Inaktivität beendet.*\nDu kannst jederzeit eine neue Sitzung starten.",
+                "continuePrompt": "✅ *Erzähl mir mehr Details!*",
+                "noActiveSession": "❌ *Du hast keine aktive Sitzung.*",
+                "limitDayReached": "🛑 *Tageslimit erreicht.*\nLeider hast du deine Sitzungen für heute bereits aufgebraucht. Komm morgen wieder!",
+                "limitReached": "⚠️ *Versuche aufgebraucht.*\nIn dieser Sitzung kann ich nicht mehr antworten. Bitte beende sie und starte eine neue, falls du den Film noch nicht gefunden hast.",
+                "confidence": "Konfidenz",
+                "buttons": {
+                    "found": "✅ Das ist er!",
+                    "continue": "🔎 Nicht dieser, weitersuchen",
+                    "stop": "❌ Suche abbrechen"
+                }
+            },
+            "errors": {
+                "quota_exceeded": "🤯 *Oje! Das Gehirn des Bots ist rauchend.*\n\nDas tägliche Limit für kostenlose KI-Anfragen wurde erreicht (Free Tier). Bitte komm morgen wieder, wenn die Limits zurückgesetzt werden! 🌅",
+                "overloaded": "⏳ *Die KI ist derzeit überlastet.*\nDie Server sind gerade überfordert. Bitte versuche es in einer Minute noch einmal."
+            }
         }
-    },
-    "errors": {
-        "quota_exceeded": "🤯 *Oje! Das Gehirn des Bots ist rauchend.*\n\nDas tägliche Limit für kostenlose KI-Anfragen wurde erreicht (Free Tier). Bitte komm morgen wieder, wenn die Limits zurückgesetzt werden! 🌅",
-        "overloaded": "⏳ *Die KI ist derzeit überlastet.*\nDie Google-Server sind gerade überfordert. Bitte versuche es in einer Minute noch einmal."
-    }
-}
