@@ -1,4 +1,4 @@
-# FilmFounder Bot 🎬
+# FilmFinder Bot 🎬
 
 ![Status](https://img.shields.io/badge/status-production-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
